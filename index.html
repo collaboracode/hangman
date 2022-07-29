@@ -24,20 +24,26 @@
     </div>
     <div id="wrongboard">
     </div>
-	    <p class="already-guess hidden">
+    <p class="already-guess hidden">
     You already guessed this letter 😭
     </p>
      <p class="game-over hidden">
     Game over! 😢
     </p>
+    <p class="game-won hidden">
+    You've won the game!  😃
+    </p>
+    <button class="reset hidden">
+    Reset Game
+    </button> 
 	<script>
 // Hangman
 
 /* TODO: 
 // 1 Letter has been guessed ✅
 // 2 Game Over! ✅
-// 3 Winner condition - he lives!
-// 4 Restart game?
+// 3 Winner condition - he lives! ✅
+// 4 Restart game? ✅
 // 5 bigger word list
 // 6 word list from an API (dictionary)
 // 7 <canvas> stick man 
@@ -67,16 +73,43 @@ function refreshWrongBoard() {
 function refreshWordBoard()
 {
   let curGuess ="";
+  let missingLetter = false;
   for (let l= 0; l < secret.length; l++) {
      if (correct.join("").includes(secret[l])) {
         curGuess += secret[l] + " ";
      } else {
          curGuess += "_ ";
+         missingLetter = true;
      }
      
   }
   document.getElementById('wordboard').innerHTML = curGuess;
+  if(missingLetter===false){
+  gameWon = true;
+  document.querySelector('.game-won').classList.remove('hidden');
+  document.querySelector('.reset').classList.remove('hidden');
+  }
 } 
+
+document.querySelector('.reset').addEventListener('click',function(){
+gameWon = false;
+gameOver = false;
+correct = [];
+wrong = [];
+blanks = "";
+
+secret = words[Math.floor((Math.random()*words.length))];
+
+document.querySelector('.already-guess').classList.add('hidden');
+document.querySelector('.game-won').classList.add('hidden');
+document.querySelector('.game-over').classList.add('hidden');
+document.querySelector('.reset').classList.add('hidden');
+refreshWordBoard();
+
+})
+
+
+
 
 for (let l=0; l < secret.length; l++) {
 	 blanks += "_ ";
@@ -142,7 +175,8 @@ document.addEventListener('keyup', function(event) {
 
                 // TODO: Lost the game 
                 document.querySelector('.game-over').classList.remove('hidden');
-                gameOver = true; 
+                gameOver = true;
+                document.querySelector('.reset').classList.remove('hidden');
 
                 break;              
           }
@@ -151,6 +185,9 @@ document.addEventListener('keyup', function(event) {
      }
 
   }
+  
+  
+	
 }); 
 
 const canRestart = function() {
