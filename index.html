@@ -16,9 +16,9 @@
   <body>
   <h2>Hangman</h2>
     <div id="man">
-      <span class="hidden" id="head">&nbsp;()</span><br />
-      <span class="hidden" id="leftarm">-</span><span class="hidden" id="mainbody">||</span><span class="hidden" id="rightarm">-</span><br/>
-      &nbsp;<span class="hidden" id="leftleg">/</span><span class="hidden" id="rightleg">\</span>
+      <span class="hidden bodypart" id="head">&nbsp;()</span><br />
+      <span class="hidden bodypart" id="leftarm">-</span><span class="hidden bodypart" id="mainbody">||</span><span class="hidden bodypart" id="rightarm">-</span><br/>
+      &nbsp;<span class="hidden bodypart" id="leftleg">/</span><span class="hidden bodypart" id="rightleg">\</span>
     </div>
     <div id="wordboard">
     </div>
@@ -44,16 +44,18 @@
 // 2 Game Over! ✅
 // 3 Winner condition - he lives! ✅
 // 4 Restart game? ✅
-// 5 bigger word list
-// 6 word list from an API (dictionary)
+// 5 bigger word list ✅
+// 6 word list from an API (dictionary) ✅
 // 7 <canvas> stick man 
 // 8 animation on the guy
 // 9 penalty for second wrong guess
-*/ 
+// 10 fix numlock errors
+*/
+const words = ["game", "superman", "javascript", "batman", "dinosaur", "hangman"];
 
-const words = ["game","superman","javascript", "batman","dinosaur", "hangman"];
+//let secret = words[Math.floor((Math.random()*words.length))];
 
-let secret = words[Math.floor((Math.random()*words.length))];
+let secret = '';
 
 let blanks = "";
 
@@ -61,137 +63,155 @@ let correct = [];
 
 let wrong = [];
 
-let gameOver = false; 
+let gameOver = false;
 
-let gameWon = false; 
+let gameWon = false;
 
-function refreshWrongBoard() {
-  let wrongStr = wrong.join(" ");
-	document.getElementById('wrongboard').innerHTML = wrongStr;
+let gameReady = false;
+
+getWord();
+
+function getWord() {
+
+    fetch('https://random-word-api.herokuapp.com/word').then((response) => response.json())
+        .then((data) => {
+            console.log(data[0]);
+            gameReady = true;
+
+            secret = data[0];
+            for (let l = 0; l < secret.length; l++) {
+                blanks += "_ ";
+            }
+
+            document.getElementById('wordboard').innerHTML = blanks;
+            refreshWrongBoard();
+
+        })
 }
 
-function refreshWordBoard()
-{
-  let curGuess ="";
-  let missingLetter = false;
-  for (let l= 0; l < secret.length; l++) {
-     if (correct.join("").includes(secret[l])) {
-        curGuess += secret[l] + " ";
-     } else {
-         curGuess += "_ ";
-         missingLetter = true;
-     }
-     
-  }
-  document.getElementById('wordboard').innerHTML = curGuess;
-  if(missingLetter===false){
-  gameWon = true;
-  document.querySelector('.game-won').classList.remove('hidden');
-  document.querySelector('.reset').classList.remove('hidden');
-  }
-} 
+function refreshWrongBoard() {
+    let wrongStr = wrong.join(" ");
+    document.getElementById('wrongboard').innerHTML = wrongStr;
+}
 
-document.querySelector('.reset').addEventListener('click',function(){
-gameWon = false;
-gameOver = false;
-correct = [];
-wrong = [];
-blanks = "";
+function refreshWordBoard() {
+    let curGuess = "";
+    let missingLetter = false;
+    for (let l = 0; l < secret.length; l++) {
+        if (correct.join("").includes(secret[l])) {
+            curGuess += secret[l] + " ";
+        } else {
+            curGuess += "_ ";
+            missingLetter = true;
+        }
 
-secret = words[Math.floor((Math.random()*words.length))];
+    }
+    document.getElementById('wordboard').innerHTML = curGuess;
+    if (missingLetter === false) {
+        gameWon = true;
+        document.querySelector('.game-won').classList.remove('hidden');
+        document.querySelector('.reset').classList.remove('hidden');
+    }
+}
 
-document.querySelector('.already-guess').classList.add('hidden');
-document.querySelector('.game-won').classList.add('hidden');
-document.querySelector('.game-over').classList.add('hidden');
-document.querySelector('.reset').classList.add('hidden');
-refreshWordBoard();
+document.querySelector('.reset').addEventListener('click', function() {
+    gameWon = false;
+    gameOver = false;
+    correct = [];
+    wrong = [];
+    blanks = "";
+    gameReady = false;
+    getWord();
+
+    document.querySelector('.already-guess').classList.add('hidden');
+    document.querySelector('.game-won').classList.add('hidden');
+    document.querySelector('.game-over').classList.add('hidden');
+    document.querySelector('.reset').classList.add('hidden');
+
+    let part = document.getElementsByClassName('bodypart')
+
+    for (let i = 0; i < part.length; i++) {
+        part[i].classList.add('hidden');
+    }
 
 })
 
 
-
-
-for (let l=0; l < secret.length; l++) {
-	 blanks += "_ ";
-}
-
-document.getElementById('wordboard').innerHTML = blanks;
-
 /* Handles key press */
 document.addEventListener('keyup', function(event) {
-	document.querySelector('.already-guess').classList.add('hidden');
-	let guess = String.fromCharCode(event.keyCode);
-  
-  if (canRestart() == false) {
-    console.log(String.fromCharCode(event.keyCode));
-    let isCorrect = false;
+    document.querySelector('.already-guess').classList.add('hidden');
+    let guess = String.fromCharCode(event.keyCode);
 
-    for (let l=0; l < secret.length; l++) {
-      if (guess.toLowerCase() == secret[l].toLowerCase()) {
-        // We have a match
-        isCorrect = true;
-        break;
-      } 
-    }
+    if (canRestart() == false && guess.toLowerCase().match(/[a-z]/) != null && gameReady) {
+        console.log(String.fromCharCode(event.keyCode));
+        let isCorrect = false;
 
-    if (isCorrect) {
-      if (!correct.join("").includes(guess.toLowerCase())) {
-            correct.push(guess.toLowerCase());
-            refreshWordBoard();
-       } else {
-          // You already guessed this letter!
-          let alreadyGuessed = document.querySelector('.already-guess');
-         /*  console.log(alreadyGuessed); */
-          alreadyGuessed.classList.remove('hidden');
-       }
-     } else {
-       if (!wrong.join("").includes(guess.toLowerCase())) {
-          wrong.push(guess.toLowerCase());
-          refreshWrongBoard();
-
-          switch (wrong.length) {
-              case 1:
-                document.getElementById('head').classList.remove('hidden');
+        for (let l = 0; l < secret.length; l++) {
+            if (guess.toLowerCase() == secret[l].toLowerCase()) {
+                // We have a match
+                isCorrect = true;
                 break;
-
-              case 2:
-                document.getElementById('mainbody').classList.remove('hidden');
-                break;
-
-              case 3:
-                document.getElementById('leftarm').classList.remove('hidden');
-                break;
-
-              case 4:
-                document.getElementById('rightarm').classList.remove('hidden');
-                break;              
-
-              case 5:
-                document.getElementById('leftleg').classList.remove('hidden');
-                break;
-
-              case 6:
-                document.getElementById('rightleg').classList.remove('hidden');
-
-                // TODO: Lost the game 
-                document.querySelector('.game-over').classList.remove('hidden');
-                gameOver = true;
-                document.querySelector('.reset').classList.remove('hidden');
-
-                break;              
-          }
+            }
         }
 
-     }
+        if (isCorrect) {
+            if (!correct.join("").includes(guess.toLowerCase())) {
+                correct.push(guess.toLowerCase());
+                refreshWordBoard();
+            } else {
+                // You already guessed this letter!
+                let alreadyGuessed = document.querySelector('.already-guess');
+                /*  console.log(alreadyGuessed); */
+                alreadyGuessed.classList.remove('hidden');
+            }
+        } else {
+            if (!wrong.join("").includes(guess.toLowerCase())) {
+                wrong.push(guess.toLowerCase());
+                refreshWrongBoard();
 
-  }
-  
-  
-	
-}); 
+                switch (wrong.length) {
+                    case 1:
+                        document.getElementById('head').classList.remove('hidden');
+                        break;
+
+                    case 2:
+                        document.getElementById('mainbody').classList.remove('hidden');
+                        break;
+
+                    case 3:
+                        document.getElementById('leftarm').classList.remove('hidden');
+                        break;
+
+                    case 4:
+                        document.getElementById('rightarm').classList.remove('hidden');
+                        break;
+
+                    case 5:
+                        document.getElementById('leftleg').classList.remove('hidden');
+                        break;
+
+                    case 6:
+                        document.getElementById('rightleg').classList.remove('hidden');
+
+                        // TODO: Lost the game 
+                        document.querySelector('.game-over').classList.remove('hidden');
+                        gameOver = true;
+                        document.querySelector('.reset').classList.remove('hidden');
+
+                        break;
+                }
+            }
+
+        }
+
+    }
+
+
+
+});
 
 const canRestart = function() {
-return(gameWon || gameOver); // return if game won or game over 
+    return (gameWon || gameOver); // return if game won or game over 
 }
 	</script>
   </body>
