@@ -3,138 +3,247 @@
   <head>
   <title>Hangman</title>
      <style>
-			.hidden {
-			  display: none;
-			}
+		.hidden {
+		  display: none;
+		}
 
-			#wrongboard {
-			  background-color: red;
-			  color: white;
-			}
+		body{
+		   background-color: #346b31;
+		   color: #eee;
+		   font-size: 1.25rem;
+		}
+
+		h2{
+		  color: #eee;
+		}
+
+		#wrongboard {
+		  background-color: red;
+		  color: white;
+		}
      </style>
   </head>
   <body>
   <h2>Hangman</h2>
-    <div id="man">
-      <span class="hidden" id="head">&nbsp;()</span><br />
-      <span class="hidden" id="leftarm">-</span><span class="hidden" id="mainbody">||</span><span class="hidden" id="rightarm">-</span><br/>
-      &nbsp;<span class="hidden" id="leftleg">/</span><span class="hidden" id="rightleg">\</span>
-    </div>
+    <canvas id="poorguy" width='150px' height='150px'>
+      
+    </canvas>
     <div id="wordboard">
     </div>
     <div id="wrongboard">
     </div>
+    <p class="already-guess hidden">
+    You already guessed this letter 😭
+    </p>
+     <p class="game-over hidden">
+    Game over! 😢
+    </p>
+    <p class="game-won hidden">
+    You've won the game!  😃
+    </p>
+    <button class="reset hidden">
+    Reset Game
+    </button> 
 	<script>
-	// Hangman
+		// Hangman
 
-/* TODO: 
-// 1 Letter has been guessed
-// 2 Game Over!
-// 3 Winner condition - he lives!
-// 4 Restart game?
-// 5 bigger word list
-// 6 word list from an API (dictionary)
-// 7 <canvas> stick man 
-// 8 animation on the guy
-// 9 penalty for second wrong guess
-*/ 
+		/* TODO: 
+		// 1 Letter has been guessed ✅
+		// 2 Game Over! ✅
+		// 3 Winner condition - he lives! ✅
+		// 4 Restart game? ✅
+		// 5 bigger word list ✅
+		// 6 word list from an API (dictionary) ✅
+		// 7 <canvas> stick man ✅
+		// 8 animation on the guy 
+		// 9 penalty for second wrong guess 
+		// 10 fix numlock errors 
+		*/
+		/* const words = ["game", "superman", "javascript", "batman", "dinosaur", "hangman"];
+		 */
+		//let secret = words[Math.floor((Math.random()*words.length))];
 
-const words = ["game","superman","javascript", "batman","dinosaur", "hangman"];
+		/* Canvas */
+		const canvas = document.querySelector('#poorguy');
+		let x = 90;
+		let y = 60;
+		let r = 20;
 
-let secret = words[Math.floor((Math.random()*words.length))];
+		if(canvas.getContext) {
+		   ctx = canvas.getContext('2d');
+		   ctx.beginPath();
+		   } else {
+			alert('Please use a canvas compatible browser');
+		   }
 
-let blanks = "";
+		/* Global variables */
+		let secret = '';
 
-let correct = [];
+		let blanks = "";
 
-let wrong = [];
+		let correct = [];
 
-function refreshWrongBoard() {
-  let wrongStr = wrong.join(" ");
-	document.getElementById('wrongboard').innerHTML = wrongStr;
-}
+		let wrong = [];
 
-function refreshWordBoard()
-{
-  let curGuess ="";
-	for (let l= 0; l < secret.length; l++) {
-	   if (correct.join("").includes(secret[l])) {
-        curGuess += secret[l] + " ";
-     } else {
-     	  curGuess += "_ ";
-     }
-     
-	}
-  document.getElementById('wordboard').innerHTML = curGuess;
-}
+		let gameOver = false;
 
-for (let l=0; l < secret.length; l++) {
-	 blanks += "_ ";
-}
+		let gameWon = false;
 
-document.getElementById('wordboard').innerHTML = blanks;
+		let gameReady = false;
 
-document.addEventListener('keyup', function(event) {
-	let guess = String.fromCharCode(event.keyCode);
-  
-	console.log(String.fromCharCode(event.keyCode));
-  let isCorrect = false;
-  
-  for (let l=0; l < secret.length; l++) {
-  	if (guess.toLowerCase() == secret[l].toLowerCase()) {
-    	// We have a match
-			isCorrect = true;
-      break;
-    } 
-  }
-  
-  if (isCorrect) {
-    if (!correct.join("").includes(guess.toLowerCase())) {
-          correct.push(guess.toLowerCase());
-          refreshWordBoard();
-     } else {
-        // You already guessed this letter!
-     }
-   } else {
-     if (!wrong.join("").includes(guess.toLowerCase())) {
-    		wrong.push(guess.toLowerCase());
-    	  refreshWrongBoard();
-        
-        switch (wrong.length) {
-        		case 1:
-            	document.getElementById('head').classList.remove('hidden');
-            	break;
-              
-            case 2:
-            	document.getElementById('mainbody').classList.remove('hidden');
-            	break;
-              
-            case 3:
-            	document.getElementById('leftarm').classList.remove('hidden');
-            	break;
-              
-            case 4:
-            	document.getElementById('rightarm').classList.remove('hidden');
-            	break;              
-              
-            case 5:
-            	document.getElementById('leftleg').classList.remove('hidden');
-            	break;
-              
-            case 6:
-            	document.getElementById('rightleg').classList.remove('hidden');
-              
-              // TODO: Lost the game 
-            	break;              
-        }
-  		}
-      
-   }
+		getWord();
 
-}); 
+		function getWord() {
+
+			fetch('https://random-word-api.herokuapp.com/word').then((response) => response.json())
+				.then((data) => {
+					console.log(data[0]);
+					gameReady = true;
+
+					secret = data[0];
+					for (let l = 0; l < secret.length; l++) {
+						blanks += "_ ";
+					}
+
+					document.getElementById('wordboard').innerHTML = blanks;
+					refreshWrongBoard();
+
+				})
+		}
+
+		function refreshWrongBoard() {
+			let wrongStr = wrong.join(" ");
+			document.getElementById('wrongboard').innerHTML = wrongStr;
+		}
+
+		function refreshWordBoard() {
+			let curGuess = "";
+			let missingLetter = false;
+			for (let l = 0; l < secret.length; l++) {
+				if (correct.join("").includes(secret[l])) {
+					curGuess += secret[l] + " ";
+				} else {
+					curGuess += "_ ";
+					missingLetter = true;
+				}
+
+			}
+			document.getElementById('wordboard').innerHTML = curGuess;
+			if (missingLetter === false) {
+				gameWon = true;
+				document.querySelector('.game-won').classList.remove('hidden');
+				document.querySelector('.reset').classList.remove('hidden');
+			}
+		}
+
+		document.querySelector('.reset').addEventListener('click', function() {
+			gameWon = false;
+			gameOver = false;
+			correct = [];
+			wrong = [];
+			blanks = "";
+			gameReady = false;
+			getWord();
+
+			document.querySelector('.already-guess').classList.add('hidden');
+			document.querySelector('.game-won').classList.add('hidden');
+			document.querySelector('.game-over').classList.add('hidden');
+			document.querySelector('.reset').classList.add('hidden');
+
+			   //reset canvas
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			
+		});
 
 
+		/* Handles key press */
+		document.addEventListener('keyup', function(event) {
+			document.querySelector('.already-guess').classList.add('hidden');
+			let guess = String.fromCharCode(event.keyCode);
 
+			if (canRestart() == false && guess.toLowerCase().match(/[a-z]/) != null && gameReady) {
+				console.log(String.fromCharCode(event.keyCode));
+				let isCorrect = false;
+
+				for (let l = 0; l < secret.length; l++) {
+					if (guess.toLowerCase() == secret[l].toLowerCase()) {
+						// We have a match
+						isCorrect = true;
+						break;
+					}
+				}
+
+				if (isCorrect) {
+					if (!correct.join("").includes(guess.toLowerCase())) {
+						correct.push(guess.toLowerCase());
+						refreshWordBoard();
+					} else {
+						// You already guessed this letter!
+						let alreadyGuessed = document.querySelector('.already-guess');
+						/*  console.log(alreadyGuessed); */
+						alreadyGuessed.classList.remove('hidden');
+					}
+				} else {
+					if (!wrong.join("").includes(guess.toLowerCase())) {
+						wrong.push(guess.toLowerCase());
+						refreshWrongBoard();
+
+						switch (wrong.length) {
+							case 1:
+								//head
+								ctx.lineWidth = 6;
+								ctx.arc(x, y, r, 0, 2 * Math.PI, false); 
+								ctx.strokeStyle = '#7f7f7f';
+								ctx.stroke();
+								break;
+
+							case 2:
+								//body
+								ctx.fillStyle = '#7f7f7f';
+								ctx.fillRect(x - 5, y + r, 10, 50);
+								break;
+
+							case 3:
+								//left arm
+								ctx.fillRect(x - 30, y + r + 7, 25, 5);
+								break;
+
+							case 4:
+							   //right arm
+								ctx.fillRect(x + 5, y + r + 7, 25, 5);
+								break;
+
+							case 5:
+								//left leg
+								ctx.moveTo(x - 4, y + r + 46);
+								ctx.lineTo(x - 30, y + r + 80);
+								ctx.stroke();
+								break;
+
+							case 6:
+								 //right leg
+								ctx.moveTo(x + 4, y + r + 46);
+								ctx.lineTo(x + 30, y + r + 80);
+								ctx.stroke();
+								document.querySelector('.game-over').classList.remove('hidden');
+								gameOver = true;
+								document.querySelector('.reset').classList.remove('hidden');
+
+								break;
+						}
+					}
+
+				}
+
+			}
+
+
+
+		});
+
+		const canRestart = function() {
+			return (gameWon || gameOver); // return if game won or game over 
+		}
 	</script>
   </body>
 </html>
